@@ -52,10 +52,15 @@ app.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// 未认证时重定向到登录页（仅针对页面请求）
+// 未认证时重定向到登录页
 app.get('/', (req, res, next) => {
   if (req.session.authenticated) return next();
   res.redirect('/login');
+});
+
+app.get('/login', (req, res) => {
+  if (req.session.authenticated) return res.redirect('/');
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // 认证中间件：保护所有 /api/* 路由
