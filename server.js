@@ -1,4 +1,5 @@
 const express = require('express');
+const session = require('express-session');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
@@ -6,17 +7,59 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3100;
+const PASSWORD = process.env.NETCUT_PASSWORD || 'dmemory';
 
 const DATA_DIR = path.join(__dirname, 'data');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const DATA_FILE = path.join(DATA_DIR, 'items.json');
+const SECRET_FILE = path.join(DATA_DIR, 'secret.txt');
 
 for (const dir of [DATA_DIR, UPLOADS_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, '[]');
 
+// 持久化 session secret，重启后 cookie 仍有效
+let SESSION_SECRET;
+if (fs.existsSync(SECRET_FILE)) {
+  SESSION_SECRET = fs.readFileSync(SECRET_FILE, 'utf8').trim();
+} else {
+  SESSION_SECRET = uuidv4() + uuidv4();
+  fs.writeFileSync(SECRET_FILE, SESSION_SECRET);
+}
+
 app.use(express.json({ limit: '100mb' }));
+app.use(session({
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }, // 7 天免登录
+}));
+
+// 登录接口（不拦截）
+app.post('/api/login', (req, res) => {
+  if (req.body.password === PASSWORD) {
+    req.session.authenticated = true;
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ error: '密码错误' });
+  }
+});
+
+app.post('/api/logout', (req, res) => {
+  req.session.destroy();
+  res.json({ success: true });
+});
+
+// 认证中间件：保护所有 /api/* 路由
+function requireAuth(req, res, next) {
+  if (req.session.authenticated) return next();
+  res.status(401).json({ error: '请先登录' });
+}
+
+app.use('/api', requireAuth);
+
+// 静态文件（HTML/CSS/JS 本身不需要认证，由前端控制显示）
 app.use(express.static(path.join(__dirname, 'public')));
 
 const storage = multer.diskStorage({

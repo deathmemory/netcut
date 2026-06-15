@@ -63,6 +63,22 @@
     </section>
   </main>
 
+  <!-- 登录遮罩 -->
+  <div id="loginOverlay" class="login-overlay" style="display:none">
+    <div class="login-card">
+      <div class="login-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+        NetCut
+      </div>
+      <p class="login-subtitle">请输入访问密码</p>
+      <div class="login-form">
+        <input id="passwordInput" type="password" placeholder="密码" autocomplete="current-password">
+        <button id="loginBtn" class="btn-primary">进入</button>
+      </div>
+      <p id="loginError" class="login-error"></p>
+    </div>
+  </div>
+
   <!-- Toast 提示 -->
   <div id="toast" class="toast"></div>
 
