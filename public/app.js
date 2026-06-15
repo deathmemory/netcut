@@ -1,53 +1,4 @@
-// ── 登录逻辑 ──────────────────────────────────────────
-const loginOverlay = document.getElementById('loginOverlay');
-const passwordInput = document.getElementById('passwordInput');
-const loginBtn = document.getElementById('loginBtn');
-const loginError = document.getElementById('loginError');
-
-async function checkAuth() {
-  try {
-    const res = await fetch('/api/items');
-    if (res.status === 401) showLogin();
-    else loadItems();
-  } catch {
-    showLogin();
-  }
-}
-
-function showLogin() {
-  loginOverlay.style.display = 'flex';
-  setTimeout(() => passwordInput.focus(), 50);
-}
-
-async function doLogin() {
-  const password = passwordInput.value;
-  if (!password) return;
-  loginBtn.disabled = true;
-  loginError.textContent = '';
-  try {
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    });
-    if (res.ok) {
-      loginOverlay.style.display = 'none';
-      loadItems();
-    } else {
-      loginError.textContent = '密码错误，请重试';
-      passwordInput.value = '';
-      passwordInput.focus();
-    }
-  } catch {
-    loginError.textContent = '网络错误，请刷新重试';
-  }
-  loginBtn.disabled = false;
-}
-
-loginBtn.addEventListener('click', doLogin);
-passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-
-// ─────────────────────────────────────────────────────
+function redirectLogin() { window.location.href = '/login'; }
 
 const dropZone = document.getElementById('dropZone');
 const textInput = document.getElementById('textInput');
@@ -184,9 +135,17 @@ function updateEmpty(count) {
   clearAllBtn.style.display = count > 0 ? 'inline-block' : 'none';
 }
 
+async function apiFetch(url, opts) {
+  const res = await fetch(url, opts);
+  if (res.status === 401) { redirectLogin(); return null; }
+  return res;
+}
+
 async function loadItems() {
   try {
-    const items = await fetch('/api/items').then(r => r.json());
+    const res = await apiFetch('/api/items');
+    if (!res) return;
+    const items = await res.json();
     itemsGrid.innerHTML = '';
     itemsGrid.appendChild(emptyState);
     items.forEach(item => itemsGrid.appendChild(createCard(item)));
@@ -369,4 +328,4 @@ clearAllBtn.addEventListener('click', async () => {
 // Auto-refresh every 30s (for multi-device sync)
 setInterval(loadItems, 30000);
 
-checkAuth();
+loadItems();

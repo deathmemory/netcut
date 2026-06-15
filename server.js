@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
@@ -51,6 +52,12 @@ app.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
+// 未认证时重定向到登录页（仅针对页面请求）
+app.get('/', (req, res, next) => {
+  if (req.session.authenticated) return next();
+  res.redirect('/login');
+});
+
 // 认证中间件：保护所有 /api/* 路由
 function requireAuth(req, res, next) {
   if (req.session.authenticated) return next();
@@ -59,7 +66,6 @@ function requireAuth(req, res, next) {
 
 app.use('/api', requireAuth);
 
-// 静态文件（HTML/CSS/JS 本身不需要认证，由前端控制显示）
 app.use(express.static(path.join(__dirname, 'public')));
 
 const storage = multer.diskStorage({
